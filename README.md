@@ -89,6 +89,27 @@ Browser дээр нээх: **http://127.0.0.1:5000**
 - Windows-ийн галт хана controller-ийн гарах холболтыг хаахгүй байх ёстой (ихэвчлэн асуудалгүй).
 - Ubuntu талд `ufw` идэвхтэй бол install.sh нь портыг автоматаар нээнэ.
 
+## Agent-ийг устгах (Ubuntu тал)
+
+Скриптээр (хамгийн хялбар):
+```bash
+cd ~/agent/agent && sudo bash uninstall.sh
+```
+
+Эсвэл гар аргаар:
+```bash
+sudo systemctl stop monitoring-agent
+sudo systemctl disable monitoring-agent
+sudo rm -f /etc/systemd/system/monitoring-agent.service
+sudo systemctl daemon-reload
+sudo rm -rf /opt/monitoring-agent /etc/monitoring-agent
+```
+
+Бүрэн устсан эсэхийг шалгах (олдохгүй байх ёстой):
+```bash
+systemctl status monitoring-agent
+```
+
 ## Асуудал шийдвэрлэх
 | Шинж тэмдэг | Шалгах зүйл |
 |---|---|
