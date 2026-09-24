@@ -110,7 +110,6 @@
 
 <main>
   <div class="row" style="margin-bottom:12px; gap:16px;">
-    <label class="chk"><input type="checkbox" id="live" checked> Дэлгэц автомат шинэчлэх</label>
     <span class="stat">Сүлжээ: {{ config.subnets|join(', ') }} · Порт {{ config.agent_port }}</span>
   </div>
   <div class="cmdbar">
@@ -126,8 +125,6 @@
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty">Эхлээд <b>Scan хийх</b> товчийг дар. Agent суусан машинууд энд гарч ирнэ.</div>
 </main>
-
-<div id="modal" onclick="this.style.display='none'"><img id="modalImg" src=""></div>
 
 <div id="execModal">
   <div class="execbox">
@@ -157,7 +154,6 @@
 <div id="toast"></div>
 
 <script>
-const REFRESH_MS = 5000;
 let hosts = [];
 const selected = new Set();
 
@@ -193,12 +189,7 @@ function render() {
   grid.innerHTML = hosts.map(h => {
     const err = h.error;
     const sel = selected.has(h.ip);
-    const shot = err
-      ? `<div class="shot off">${err}</div>`
-      : `<img class="shot" src="/api/screenshot/${h.ip}?t=${Date.now()}"
-              onclick="zoom('${h.ip}')" onerror="this.classList.add('off');this.alt='зураг алга'">`;
     return `<div class="card ${sel?'sel':''}">
-      ${shot}
       <div class="meta">
         <div class="row">
           <input type="checkbox" ${sel?'checked':''} onchange="toggle('${h.ip}',this.checked)">
@@ -209,7 +200,7 @@ function render() {
         </div>
         <div class="sub">
           ${h.ip} · ${h.active_user ? '👤 '+h.active_user : 'нэвтрээгүй'}<br>
-          ${h.os || ''}
+          ${err ? '<span style="color:var(--warn)">'+err+'</span>' : (h.os || '')}
         </div>
         ${err ? '' : `<div class="bars" title="CPU / RAM">${bar(h.cpu_percent)}${bar(h.mem_percent)}</div>`}
       </div>
@@ -223,11 +214,6 @@ function selectAll(on) {
   if (on) hosts.forEach(h => { if (!h.error) selected.add(h.ip); });
   render();
 }
-function zoom(ip) {
-  document.getElementById('modalImg').src = `/api/screenshot/${ip}?t=${Date.now()}`;
-  document.getElementById('modal').style.display = 'flex';
-}
-
 function targets() { return [...selected]; }
 
 async function cmd(action) {
@@ -417,15 +403,6 @@ async function reopenTerm() {
   openTerm(ip, name);
 }
 
-// Дэлгэцийн зургийг автоматаар шинэчлэх
-setInterval(() => {
-  if (!document.getElementById('live').checked || !hosts.length) return;
-  document.querySelectorAll('img.shot').forEach(img => {
-    if (img.classList.contains('off')) return;
-    const base = img.src.split('?')[0];
-    img.src = base + '?t=' + Date.now();
-  });
-}, REFRESH_MS);
 </script>
 </body>
 </html>
