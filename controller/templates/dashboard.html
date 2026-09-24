@@ -63,6 +63,9 @@
   #cmd { flex: 1; background: #000; color: var(--text); border: 1px solid var(--border);
          border-radius: 8px; padding: 9px 12px; font-family: monospace; font-size: 13px; }
   #cmd:focus { outline: none; border-color: var(--accent); }
+  .stdin { width: 120px; background: #000; color: var(--text); border: 1px solid var(--border);
+           border-radius: 8px; padding: 9px 10px; font-family: monospace; font-size: 13px; }
+  .stdin:focus { outline: none; border-color: var(--accent); }
   #execModal { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none;
                align-items: center; justify-content: center; z-index: 55; }
   .execbox { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
@@ -114,6 +117,8 @@
     <span class="cmdlabel">$</span>
     <input id="cmd" placeholder="Terminal команд бичнэ, ж: sudo apt update  (Enter дарж ажиллуулна)"
            onkeydown="if(event.key==='Enter')runExec()">
+    <input id="stdin" class="stdin" title="Асуултын хариу (y/N зэрэг). Хоосон бол хариу өгөхгүй."
+           placeholder="хариу (ж: y)">
     <label class="chk"><input type="checkbox" id="asUser"> хэрэглэгчийн эрхээр</label>
     <button class="primary" onclick="runExec()">▶ Ажиллуулах</button>
   </div>
@@ -263,7 +268,9 @@ async function runExec() {
   if (!confirm(`${scope} дээр дараах командыг ажиллуулах уу?\n\n$ ${command}`)) return;
 
   const asUser = document.getElementById('asUser').checked;
-  document.getElementById('execCmd').textContent = '$ ' + command;
+  const stdin = document.getElementById('stdin').value;
+  document.getElementById('execCmd').textContent =
+    '$ ' + command + (stdin ? '   (хариу: ' + stdin + ')' : '');
   document.getElementById('execResults').innerHTML =
     '<div class="stat" style="padding:20px 0">⏳ Ажиллуулж байна...</div>';
   document.getElementById('execModal').style.display = 'flex';
@@ -271,7 +278,7 @@ async function runExec() {
   try {
     const r = await fetch('/api/exec', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({command, targets: t, as_user: asUser, timeout: 60}),
+      body: JSON.stringify({command, targets: t, as_user: asUser, timeout: 60, stdin}),
     });
     const d = await r.json();
     renderExec(d.results);

@@ -219,6 +219,7 @@ def api_exec():
         return jsonify({"error": "command хоосон"}), 400
     as_user = bool(body.get("as_user", False))
     timeout = max(1, min(int(body.get("timeout", 30) or 30), 300))
+    stdin_text = body.get("stdin", "")
 
     targets = body.get("targets") or []
     if not targets:
@@ -231,7 +232,8 @@ def api_exec():
         try:
             r = requests.post(f"http://{ip}:{port}/exec",
                               headers=_headers(),
-                              json={"command": command, "as_user": as_user, "timeout": timeout},
+                              json={"command": command, "as_user": as_user,
+                                    "timeout": timeout, "stdin": stdin_text},
                               timeout=timeout + 10)
             if r.status_code == 200:
                 return ip, r.json()

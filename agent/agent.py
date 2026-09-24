@@ -463,13 +463,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"error": "command хоосон"})
             as_user = bool(payload.get("as_user", False))
             timeout = min(int(payload.get("timeout", 30) or 30), 300)
+            # y/N зэрэг асуултад урьдчилан хариулах stdin
+            stdin_text = payload.get("stdin")
+            kwargs = {"capture_output": True, "timeout": timeout}
+            if stdin_text:
+                if not str(stdin_text).endswith("\n"):
+                    stdin_text = str(stdin_text) + "\n"
+                kwargs["input"] = stdin_text.encode()
             try:
                 if as_user and sess.get("user"):
-                    r = run_as_user(sess, ["bash", "-lc", command],
-                                    capture_output=True, timeout=timeout)
+                    r = run_as_user(sess, ["bash", "-lc", command], **kwargs)
                 else:
-                    r = subprocess.run(["bash", "-lc", command],
-                                       capture_output=True, timeout=timeout)
+                    r = subprocess.run(["bash", "-lc", command], **kwargs)
                 return self._json(200, {
                     "returncode": r.returncode,
                     "stdout": (r.stdout or b"").decode(errors="ignore")[-8000:],
