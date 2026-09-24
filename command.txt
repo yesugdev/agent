@@ -1,0 +1,1 @@
+cd ~/agent && git pull && sudo cp agent/agent.py /opt/monitoring-agent/agent.py && sudo systemctl restart monitoring-agent
