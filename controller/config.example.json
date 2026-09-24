@@ -1,0 +1,10 @@
+{
+  "agent_port": 8765,
+  "token": "ЭНД-НУУЦ-ТҮЛХҮҮР-БИЧНЭ-agent-тэй-ижил",
+  "subnets": ["192.168.1.0/24"],
+  "scan_timeout": 0.4,
+  "request_timeout": 6,
+  "listen_host": "127.0.0.1",
+  "listen_port": 5000,
+  "shutdown_delay": 3
+}

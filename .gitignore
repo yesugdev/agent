@@ -1,0 +1,17 @@
+# Нууц токен агуулсан тохиргоо — GitHub-д битгий push хий
+controller/config.json
+agent/config.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

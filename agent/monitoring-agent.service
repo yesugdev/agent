@@ -1,0 +1,15 @@
+[Unit]
+Description=Monitoring Agent (Veyon-маягийн лабораторийн удирдлагын agent)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# root эрхээр ажиллана: унтраах/reboot болон бусад хэрэглэгчийн session рүү хандахад шаардлагатай
+ExecStart=/usr/bin/python3 /opt/monitoring-agent/agent.py
+Environment=AGENT_CONFIG=/etc/monitoring-agent/config.json
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

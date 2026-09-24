@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Компьютер хяналт</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/css/xterm.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #1a1d24; --border: #2a2f3a;
+    --text: #e6e9ef; --muted: #9aa4b2; --accent: #4f8cff;
+    --ok: #3fb950; --warn: #d29922; --danger: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+         background: var(--bg); color: var(--text); }
+  header { position: sticky; top: 0; z-index: 10; background: var(--panel);
+           border-bottom: 1px solid var(--border); padding: 12px 18px;
+           display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  h1 { font-size: 17px; margin: 0 14px 0 0; font-weight: 600; }
+  .grow { flex: 1; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+           padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  button.warn   { background: var(--warn);   border-color: var(--warn);   color: #000; }
+  .stat { color: var(--muted); font-size: 13px; }
+  main { padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--border);
+          border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .card.sel { outline: 2px solid var(--accent); }
+  .shot { width: 100%; aspect-ratio: 16/10; object-fit: cover; background: #000;
+          cursor: pointer; display: block; }
+  .shot.off { display: flex; align-items: center; justify-content: center;
+              color: var(--muted); font-size: 13px; }
+  .meta { padding: 10px 12px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .name { font-weight: 600; font-size: 14px; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+  .dot.on { background: var(--ok); } .dot.err { background: var(--warn); }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 3px; line-height: 1.5; }
+  .bars { display: flex; gap: 6px; margin-top: 6px; }
+  .bar { flex: 1; height: 5px; background: #000; border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent); }
+  .card input[type=checkbox] { width: 16px; height: 16px; }
+  #modal { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none;
+           align-items: center; justify-content: center; z-index: 50; }
+  #modal img { max-width: 96vw; max-height: 92vh; border-radius: 8px; }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+           background: var(--panel); border: 1px solid var(--border); padding: 10px 18px;
+           border-radius: 10px; display: none; z-index: 60; }
+  label.chk { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+  .empty { color: var(--muted); text-align: center; padding: 60px 0; }
+  .cmdbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 10px; padding: 8px 12px; }
+  .cmdlabel { color: var(--ok); font-family: monospace; font-weight: 700; }
+  #cmd { flex: 1; background: #000; color: var(--text); border: 1px solid var(--border);
+         border-radius: 8px; padding: 9px 12px; font-family: monospace; font-size: 13px; }
+  #cmd:focus { outline: none; border-color: var(--accent); }
+  #execModal { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none;
+               align-items: center; justify-content: center; z-index: 55; }
+  .execbox { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+             width: min(900px, 94vw); max-height: 88vh; display: flex; flex-direction: column; }
+  .exechead { display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+              border-bottom: 1px solid var(--border); }
+  .exechead code { background: #000; padding: 3px 8px; border-radius: 6px;
+                   color: var(--accent); font-size: 12px; }
+  #execResults { overflow: auto; padding: 8px 16px 16px; }
+  .exres { border: 1px solid var(--border); border-radius: 8px; margin-top: 10px; }
+  .exres > .h { display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+                border-bottom: 1px solid var(--border); font-size: 13px; }
+  .exres pre { margin: 0; padding: 10px 12px; white-space: pre-wrap; word-break: break-all;
+               font-size: 12px; color: var(--muted); max-height: 220px; overflow: auto; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .badge.ok { background: rgba(63,185,80,.2); color: var(--ok); }
+  .badge.bad { background: rgba(248,81,73,.2); color: var(--danger); }
+  .tbtn { padding: 2px 8px; font-size: 13px; line-height: 1; }
+  #termModal { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none;
+               align-items: center; justify-content: center; z-index: 70; }
+  .termbox { background: #000; border: 1px solid var(--border); border-radius: 12px;
+             width: min(1000px, 95vw); height: min(650px, 90vh);
+             display: flex; flex-direction: column; overflow: hidden; }
+  .termhead { display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+              background: var(--panel); border-bottom: 1px solid var(--border); }
+  #termView { flex: 1; padding: 6px 8px; overflow: hidden; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🖥️ Компьютер хяналт</h1>
+  <button class="primary" id="scanBtn" onclick="scan()">🔍 Scan хийх</button>
+  <button onclick="selectAll(true)">Бүгдийг сонгох</button>
+  <button onclick="selectAll(false)">Цэвэрлэх</button>
+  <span class="grow"></span>
+  <button class="warn" onclick="cmd('lock')">🔒 Түгжих</button>
+  <button onclick="sendMessage()">💬 Мессеж</button>
+  <button class="warn" onclick="cmd('reboot')">♻️ Reboot</button>
+  <button class="danger" onclick="cmd('shutdown')">⏻ Унтраах</button>
+  <span class="stat" id="stat">—</span>
+</header>
+
+<main>
+  <div class="row" style="margin-bottom:12px; gap:16px;">
+    <label class="chk"><input type="checkbox" id="live" checked> Дэлгэц автомат шинэчлэх</label>
+    <span class="stat">Сүлжээ: {{ config.subnets|join(', ') }} · Порт {{ config.agent_port }}</span>
+  </div>
+  <div class="cmdbar">
+    <span class="cmdlabel">$</span>
+    <input id="cmd" placeholder="Terminal команд бичнэ, ж: sudo apt update  (Enter дарж ажиллуулна)"
+           onkeydown="if(event.key==='Enter')runExec()">
+    <label class="chk"><input type="checkbox" id="asUser"> хэрэглэгчийн эрхээр</label>
+    <button class="primary" onclick="runExec()">▶ Ажиллуулах</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Эхлээд <b>Scan хийх</b> товчийг дар. Agent суусан машинууд энд гарч ирнэ.</div>
+</main>
+
+<div id="modal" onclick="this.style.display='none'"><img id="modalImg" src=""></div>
+
+<div id="execModal">
+  <div class="execbox">
+    <div class="exechead">
+      <b>Командын гаралт</b>
+      <code id="execCmd"></code>
+      <span class="grow"></span>
+      <button onclick="document.getElementById('execModal').style.display='none'">✕ Хаах</button>
+    </div>
+    <div id="execResults"></div>
+  </div>
+</div>
+<div id="termModal">
+  <div class="termbox">
+    <div class="termhead">
+      <span class="dot on"></span>
+      <b id="termTitle">Terminal</b>
+      <label class="chk" style="margin-left:12px"><input type="checkbox" id="termAsUser"> хэрэглэгчийн эрхээр</label>
+      <span class="grow"></span>
+      <button onclick="reopenTerm()">↻ Дахин нээх</button>
+      <button class="danger" onclick="closeTerm()">✕ Хаах</button>
+    </div>
+    <div id="termView"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const REFRESH_MS = 5000;
+let hosts = [];
+const selected = new Set();
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3500);
+}
+
+async function scan() {
+  const b = document.getElementById('scanBtn');
+  b.disabled = true; b.textContent = '⏳ Scan хийж байна...';
+  try {
+    const r = await fetch('/api/scan', {method: 'POST'});
+    const d = await r.json();
+    hosts = d.hosts;
+    render();
+    toast(`${d.count} машин олдлоо`);
+  } catch (e) { toast('Scan алдаа: ' + e); }
+  b.disabled = false; b.textContent = '🔍 Scan хийх';
+}
+
+function bar(pct) {
+  pct = (pct == null) ? 0 : pct;
+  return `<div class="bar"><i style="width:${pct}%"></i></div>`;
+}
+
+function render() {
+  const grid = document.getElementById('grid');
+  document.getElementById('empty').style.display = hosts.length ? 'none' : 'block';
+  document.getElementById('stat').textContent =
+    `${hosts.length} машин · ${selected.size} сонгосон`;
+  grid.innerHTML = hosts.map(h => {
+    const err = h.error;
+    const sel = selected.has(h.ip);
+    const shot = err
+      ? `<div class="shot off">${err}</div>`
+      : `<img class="shot" src="/api/screenshot/${h.ip}?t=${Date.now()}"
+              onclick="zoom('${h.ip}')" onerror="this.classList.add('off');this.alt='зураг алга'">`;
+    return `<div class="card ${sel?'sel':''}">
+      ${shot}
+      <div class="meta">
+        <div class="row">
+          <input type="checkbox" ${sel?'checked':''} onchange="toggle('${h.ip}',this.checked)">
+          <span class="dot ${err?'err':'on'}"></span>
+          <span class="name" title="${h.ip}">${h.hostname || h.ip}</span>
+          <span class="grow"></span>
+          ${err ? '' : `<button class="tbtn" title="Terminal нээх" onclick="openTerm('${h.ip}','${(h.hostname||h.ip)}')">⌨</button>`}
+        </div>
+        <div class="sub">
+          ${h.ip} · ${h.active_user ? '👤 '+h.active_user : 'нэвтрээгүй'}<br>
+          ${h.os || ''}
+        </div>
+        ${err ? '' : `<div class="bars" title="CPU / RAM">${bar(h.cpu_percent)}${bar(h.mem_percent)}</div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(ip, on) { on ? selected.add(ip) : selected.delete(ip); render(); }
+function selectAll(on) {
+  selected.clear();
+  if (on) hosts.forEach(h => { if (!h.error) selected.add(h.ip); });
+  render();
+}
+function zoom(ip) {
+  document.getElementById('modalImg').src = `/api/screenshot/${ip}?t=${Date.now()}`;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function targets() { return [...selected]; }
+
+async function cmd(action) {
+  const t = targets();
+  const scope = t.length ? `${t.length} сонгосон машин` : 'БҮХ машин';
+  const names = {shutdown:'УНТРААХ', reboot:'REBOOT хийх', lock:'ТҮГЖИХ'};
+  if (!confirm(`${scope}-ыг ${names[action]} гэдэгт итгэлтэй байна уу?`)) return;
+  await runCommand(action, t, {});
+}
+
+async function sendMessage() {
+  const text = prompt('Илгээх мессеж:');
+  if (!text) return;
+  await runCommand('message', targets(), {text, title: 'Багшийн мэдэгдэл'});
+}
+
+async function runCommand(action, targets, extra) {
+  try {
+    const r = await fetch('/api/command', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action, targets, ...extra}),
+    });
+    const d = await r.json();
+    toast(`${action}: ${d.success}/${d.sent} амжилттай`);
+  } catch (e) { toast('Алдаа: ' + e); }
+}
+
+function esc(s) {
+  return (s || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+async function runExec() {
+  const input = document.getElementById('cmd');
+  const command = input.value.trim();
+  if (!command) return;
+  const t = targets();
+  const scope = t.length ? `${t.length} сонгосон машин` : 'БҮХ машин';
+  if (!confirm(`${scope} дээр дараах командыг ажиллуулах уу?\n\n$ ${command}`)) return;
+
+  const asUser = document.getElementById('asUser').checked;
+  document.getElementById('execCmd').textContent = '$ ' + command;
+  document.getElementById('execResults').innerHTML =
+    '<div class="stat" style="padding:20px 0">⏳ Ажиллуулж байна...</div>';
+  document.getElementById('execModal').style.display = 'flex';
+
+  try {
+    const r = await fetch('/api/exec', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({command, targets: t, as_user: asUser, timeout: 60}),
+    });
+    const d = await r.json();
+    renderExec(d.results);
+    toast(`Команд: ${d.success}/${d.sent} амжилттай (exit 0)`);
+  } catch (e) {
+    document.getElementById('execResults').innerHTML =
+      `<div class="stat" style="color:var(--danger)">Алдаа: ${esc(String(e))}</div>`;
+  }
+}
+
+function renderExec(results) {
+  const ips = Object.keys(results).sort();
+  const nameOf = ip => (hosts.find(h => h.ip === ip)?.hostname) || ip;
+  document.getElementById('execResults').innerHTML = ips.map(ip => {
+    const res = results[ip];
+    if (res.error) {
+      return `<div class="exres"><div class="h">
+        <span class="badge bad">алдаа</span><b>${nameOf(ip)}</b>
+        <span class="stat">${ip}</span></div>
+        <pre>${esc(res.error)}</pre></div>`;
+    }
+    const ok = res.returncode === 0;
+    const out = (res.stdout || '') + (res.stderr ? '\n[stderr]\n' + res.stderr : '');
+    return `<div class="exres"><div class="h">
+      <span class="badge ${ok?'ok':'bad'}">exit ${res.returncode}</span>
+      <b>${nameOf(ip)}</b><span class="stat">${ip}</span></div>
+      <pre>${esc(out) || '(гаралт хоосон)'}</pre></div>`;
+  }).join('');
+}
+
+// ---- Интерактив terminal ----
+const term = {ip:null, name:null, sid:null, xterm:null, since:0, poll:null, ro:null};
+const FONT = 14, CW = FONT*0.6, LH = FONT*1.2;
+
+function calcSize() {
+  const el = document.getElementById('termView');
+  const cols = Math.max(20, Math.floor(el.clientWidth / CW));
+  const rows = Math.max(6, Math.floor(el.clientHeight / LH));
+  return {cols, rows};
+}
+
+async function openTerm(ip, name) {
+  term.ip = ip; term.name = name || ip;
+  document.getElementById('termTitle').textContent = 'Terminal — ' + term.name;
+  document.getElementById('termModal').style.display = 'flex';
+
+  const view = document.getElementById('termView');
+  view.innerHTML = '';
+  term.xterm = new Terminal({
+    fontFamily: 'Consolas, "Courier New", monospace', fontSize: FONT,
+    cursorBlink: true, scrollback: 5000,
+    theme: {background: '#000000', foreground: '#e6e9ef'},
+  });
+  term.xterm.open(view);
+  const {cols, rows} = calcSize();
+  term.xterm.resize(cols, rows);
+
+  const asUser = document.getElementById('termAsUser').checked;
+  try {
+    const r = await fetch('/api/term/open', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ip, as_user: asUser}),
+    });
+    const d = await r.json();
+    if (!d.sid) { term.xterm.write('\r\n[холбогдож чадсангүй: '+(d.error||'')+']\r\n'); return; }
+    term.sid = d.sid; term.since = 0;
+  } catch (e) { term.xterm.write('\r\n[алдаа: '+e+']\r\n'); return; }
+
+  sendResize(cols, rows);
+  term.xterm.onData(data => sendInput(data));
+  term.poll = setInterval(pollTerm, 250);
+
+  // Цонхны хэмжээ өөрчлөгдвөл дахин тохируулах
+  term.ro = new ResizeObserver(() => {
+    if (!term.xterm) return;
+    const s = calcSize();
+    term.xterm.resize(s.cols, s.rows);
+    sendResize(s.cols, s.rows);
+  });
+  term.ro.observe(view);
+  setTimeout(() => term.xterm && term.xterm.focus(), 50);
+}
+
+async function sendInput(data) {
+  if (!term.sid) return;
+  const b64 = btoa(unescape(encodeURIComponent(data)));
+  fetch('/api/term/input', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ip: term.ip, sid: term.sid, data: b64}),
+  }).catch(()=>{});
+}
+
+function sendResize(cols, rows) {
+  if (!term.sid) return;
+  fetch('/api/term/resize', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ip: term.ip, sid: term.sid, rows, cols}),
+  }).catch(()=>{});
+}
+
+async function pollTerm() {
+  if (!term.sid) return;
+  try {
+    const r = await fetch(`/api/term/read?ip=${term.ip}&sid=${term.sid}&since=${term.since}`);
+    const d = await r.json();
+    if (d.closed) { term.xterm.write('\r\n[session хаагдсан]\r\n'); stopPoll(); return; }
+    if (d.data) {
+      const bytes = Uint8Array.from(atob(d.data), c => c.charCodeAt(0));
+      term.xterm.write(bytes);
+      term.since = d.next;
+    }
+    if (d.alive === false) { term.xterm.write('\r\n[shell дууссан]\r\n'); stopPoll(); }
+  } catch (e) { /* дараагийн poll дээр дахин оролдоно */ }
+}
+
+function stopPoll() { if (term.poll) { clearInterval(term.poll); term.poll = null; } }
+
+async function closeTerm() {
+  stopPoll();
+  if (term.ro) { term.ro.disconnect(); term.ro = null; }
+  if (term.sid) {
+    fetch('/api/term/close', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ip: term.ip, sid: term.sid}),
+    }).catch(()=>{});
+  }
+  if (term.xterm) { term.xterm.dispose(); term.xterm = null; }
+  term.sid = null;
+  document.getElementById('termModal').style.display = 'none';
+}
+
+async function reopenTerm() {
+  const ip = term.ip, name = term.name;
+  await closeTerm();
+  document.getElementById('termModal').style.display = 'flex';
+  openTerm(ip, name);
+}
+
+// Дэлгэцийн зургийг автоматаар шинэчлэх
+setInterval(() => {
+  if (!document.getElementById('live').checked || !hosts.length) return;
+  document.querySelectorAll('img.shot').forEach(img => {
+    if (img.classList.contains('off')) return;
+    const base = img.src.split('?')[0];
+    img.src = base + '?t=' + Date.now();
+  });
+}, REFRESH_MS);
+</script>
+</body>
+</html>
