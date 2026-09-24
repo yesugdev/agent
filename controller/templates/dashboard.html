@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Компьютер хяналт</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/css/xterm.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.js"></script>
+<link rel="stylesheet" href="/static/xterm/xterm.min.css">
+<script src="/static/xterm/xterm.min.js"></script>
 <style>
   :root {
     --bg: #0f1115; --panel: #1a1d24; --border: #2a2f3a;
@@ -307,6 +307,10 @@ function calcSize() {
 }
 
 async function openTerm(ip, name) {
+  if (typeof Terminal === 'undefined') {
+    toast('xterm.js ачаалагдсангүй — controller-ийг дахин эхлүүлнэ үү');
+    return;
+  }
   term.ip = ip; term.name = name || ip;
   document.getElementById('termTitle').textContent = 'Terminal — ' + term.name;
   document.getElementById('termModal').style.display = 'flex';
